@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtualenvs
+.venv/
+venv/
+env/
+ENV/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
+# Type stubs
+.dmypy.json
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Env / secrets — never commit local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# OS
+Thumbs.db
+ehthumbs.db
+
+# Local state — anything you don't want history-tracked
+data/
+tmp/
+*.log

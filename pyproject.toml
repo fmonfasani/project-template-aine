@@ -1,0 +1,117 @@
+# {{ project_name }} — Python project. Generated from project-template.
+# Run `python scripts/init.py` (or `make init`) once to fill in the placeholders.
+
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "{{ project_slug }}"
+version = "0.1.0"
+description = "{{ project_description }}"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "{{ project_license }}" }
+authors = [{ name = "{{ project_author }}", email = "{{ project_email }}" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+
+# T2 ships the aine-platform runtime (providers + routing + codegen). Without
+# OPENROUTER_API_KEY set, the runtime degrades to a deterministic local provider,
+# so this dep is safe to take in projects that don't use AI yet.
+dependencies = [
+    "aine-platform @ git+https://github.com/fmonfasani/hookclose@main",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4,<1.0",
+    "mypy>=1.10,<2.0",
+    "pytest>=8.2,<9.0",
+    "pytest-asyncio>=0.23,<1.0",  # needed for async AI tests
+    "pytest-cov>=5.0,<6.0",
+]
+
+[project.urls]
+Homepage = "{{ project_homepage }}"
+Source = "{{ project_homepage }}"
+Issues = "{{ project_homepage }}/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ project_slug }}"]
+
+# aine-platform ships as a git dep until it hits PyPI; hatchling refuses direct
+# references by default to discourage them — flip the opt-in flag.
+[tool.hatch.metadata]
+allow-direct-references = true
+
+# -----------------------------------------------------------------------------
+# Ruff — formatting + linting in one tool. Match the rule set Waseller proved
+# in production: aggressive but with the dead/hostile rules muted.
+# -----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM", "PL", "RUF", "ANN", "ASYNC"]
+ignore = [
+    "ANN101",   # removed in newer ruff — harmless to list
+    "ANN102",   # removed in newer ruff — harmless to list
+    "PLR0913",  # too-many-args: false-positive for clean constructor injection
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests get a relaxed annotation/assertion regime so they read like prose.
+"tests/**/*.py" = ["S101", "S105", "S106", "ANN", "PLR2004"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# -----------------------------------------------------------------------------
+# mypy — strict from day 1. Loosening later is easier than tightening.
+# -----------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+strict = true
+warn_unreachable = true
+# aine-platform's surface isn't fully typed end-to-end yet — let mypy follow
+# imports without exploding. Tighten this once HookClose ships proper stubs.
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["runtime.*", "providers.*", "workers.*", "contracts.*"]
+ignore_missing_imports = true
+
+# -----------------------------------------------------------------------------
+# Pytest
+# -----------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"  # async AI tests don't need per-test markers
+markers = [
+    "unit: pure unit tests (default)",
+    "integration: requires external services (real OPENROUTER_API_KEY, etc.)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["{{ project_slug }}"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

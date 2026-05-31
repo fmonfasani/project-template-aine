@@ -1,0 +1,74 @@
+name: CI
+
+# What we verify on every push: the *post-init* project gates green. The bare
+# template can't install because the placeholders in pyproject.toml (e.g.
+# `email = "{{ project_email }}"`) are intentionally invalid metadata. So CI
+# walks the user flow end-to-end:
+#
+#   1. Copy the template into a scratch dir.
+#   2. Run scripts/init.py with canned answers.
+#   3. pip install -e ".[dev]" + run ruff + ruff format + mypy --strict + pytest.
+#
+# That gives us a real signal: a fresh clone of the template, initialized, is
+# green on day 1 across every supported Python.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  init-and-gate:
+    name: Init · Lint · Type · Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Pin one currently-supported minor per CPython release so a stdlib
+        # behavior change in a future point release doesn't silently break us.
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Initialize the template into a scratch dir
+        run: |
+          mkdir -p /tmp/init
+          cp -r . /tmp/init/proj
+          cd /tmp/init/proj
+          # Feed scripts/init.py canned answers on stdin (defaults filled in)
+          printf 'CI Sample\nci_sample\nCI smoke project\nCI Bot\nci@example.com\nMIT\nhttps://github.com/example/ci-sample\n' \
+              | python scripts/init.py
+
+      - name: Install
+        working-directory: /tmp/init/proj
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ruff (lint + format)
+        working-directory: /tmp/init/proj
+        run: |
+          ruff check --output-format=github .
+          ruff format --check .
+
+      - name: mypy --strict
+        working-directory: /tmp/init/proj
+        run: mypy src tests
+
+      - name: pytest
+        working-directory: /tmp/init/proj
+        run: pytest -q
