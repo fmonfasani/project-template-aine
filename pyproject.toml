@@ -25,7 +25,7 @@ classifiers = [
 # OPENROUTER_API_KEY set, the runtime degrades to a deterministic local provider,
 # so this dep is safe to take in projects that don't use AI yet.
 dependencies = [
-    "aine-platform @ git+https://github.com/fmonfasani/hookclose@main",
+    "aine-platform>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -45,7 +45,7 @@ Issues = "{{ project_homepage }}/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/{{ project_slug }}"]
 
-# aine-platform ships as a git dep until it hits PyPI; hatchling refuses direct
+# aine-platform is published on PyPI (github.com/fmonfasani/hookclose is the source)
 # references by default to discourage them — flip the opt-in flag.
 [tool.hatch.metadata]
 allow-direct-references = true
